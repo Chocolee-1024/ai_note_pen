@@ -10,27 +10,27 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Typeface;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
 import androidx.annotation.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collections;
+
 public class MyCanvasView extends View {
-
-    Context context;
+    private Context context;
     private Paint mBitmapPaint;
-    private Bitmap mBitmap,background;
+    private Bitmap mBitmap;
     private Canvas mCanvas;
-
-    private int strokeWidth = 10;
-    //畫筆
+    private static float PRESSURE_THRESHOLD = 0.2f; // 定義壓力閾值
     private Path mPath;
-
     private Paint mPaint;
-    //暫存使用者手指的X,Y座標
-    private float mX, mY;
-    private static final float TOUCH_TOLERANCE = 4;
 
+    private static final float TOUCH_TOLERANCE = 4;
+    private float mX, mY;
+    private boolean mDrawing = false;
 
     public MyCanvasView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -38,16 +38,7 @@ public class MyCanvasView extends View {
 
         mPath = new Path();
         mBitmapPaint = new Paint(Paint.DITHER_FLAG);
-        //畫點選畫面時顯示的圈圈
-//        circlePaint = new Paint();
-//        circlePath = new Path();
-//        circlePaint.setAntiAlias(true);
-//        circlePaint.setColor(Color.BLACK);
-//        circlePaint.setStyle(Paint.Style.STROKE);
-//        circlePaint.setStrokeJoin(Paint.Join.MITER);
-//        circlePaint.setStrokeWidth(4f);
 
-        //繪製線條
         mPaint = new Paint();
         mPaint.setAntiAlias(true);
         mPaint.setDither(true);
@@ -55,19 +46,12 @@ public class MyCanvasView extends View {
         mPaint.setStyle(Paint.Style.STROKE);
         mPaint.setStrokeJoin(Paint.Join.ROUND);
         mPaint.setStrokeCap(Paint.Cap.ROUND);
-        mPaint.setStrokeWidth(12);
-        mPaint.setStrokeCap(Paint.Cap.BUTT);   // 设置为平头笔触
-        DashPathEffect dashPathEffect = new DashPathEffect(new float[]{10, 20}, 0);
-        mPaint.setPathEffect(dashPathEffect); // 设置虚线路径效果
-        mPaint.setAlpha(0x80); // 设置透明度
-
-
+        mPaint.setAlpha(0x80);
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        //初始化空畫布
         mBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         mCanvas = new Canvas(mBitmap);
     }
@@ -75,97 +59,90 @@ public class MyCanvasView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        //取得上一個動作所畫過的內容
-        canvas.drawBitmap( mBitmap, 0, 0, mBitmapPaint);
-        //依據移動路徑畫線
-        canvas.drawPath( mPath,  mPaint);
-        //畫圓圈圈
-//        canvas.drawPath( circlePath,  circlePaint);
+        // 將 mBitmap 繪製到畫布上
+        canvas.drawBitmap(mBitmap, 0, 0, mBitmapPaint);
+        // 再將 mPath 繪製到 mBitmap 上
+        canvas.drawPath(mPath, mPaint);
     }
 
-    /**覆寫:偵測使用者觸碰螢幕的事件*/
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        float x = event.getX(),y = event.getY();
+        float x = event.getX();
+        float y = event.getY();
+        float pressure = event.getPressure();
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                touch_start(x, y);
+                PRESSURE_THRESHOLD = pressure;
+                mPaint.setStrokeWidth(pressure * 10.0f);
+                touchStart(x, y);
                 break;
             case MotionEvent.ACTION_MOVE:
-                touch_move(x, y);
+                touchMove(x, y, pressure);
                 break;
             case MotionEvent.ACTION_UP:
-                touch_up();
+                touchUp();
                 break;
         }
         invalidate();
         return true;
-
     }
-    /**觸碰到螢幕時，取得手指的X,Y座標；並順便設定為線的起點*/
-    private void touch_start(float x, float y) {
+
+    private void touchStart(float x, float y) {
         mPath.reset();
         mPath.moveTo(x, y);
         mX = x;
         mY = y;
+        mDrawing = true;
     }
-    /**在螢幕上滑動時，不斷刷新移動路徑*/
-    private void touch_move(float x, float y) {
-        //取得目前位置與前一點位置的X距離
-        float dx = Math.abs(x - mX);
-        //取得目前位置與前一點位置的Y距離
-        float dy = Math.abs(y - mY);
-        //判斷此兩點距離是否有大於預設的最小值，有才把他畫進去
-        if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
-            //畫貝爾茲曲線
-            mPath.quadTo(mX, mY, (x + mX)/2, (y + mY)/2);
-            //更新上一點X座標
-            mX = x;
-            //更新上一點Y座標
-            mY = y;
 
-            //消滅上一點時的小圈圈位置
-//            circlePath.reset();
-            //更新小圈圈的位置
-//            circlePath.addCircle(mX, mY, 30, Path.Direction.CW);
+    private void touchMove(float x, float y, float pressure) {
+        float dx = Math.abs(x - mX);
+        float dy = Math.abs(y - mY);
+        if (mDrawing && (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE)) {
+            // 計算筆壓變化
+            float pressureDifference = Math.abs(pressure - PRESSURE_THRESHOLD);
+
+            if (pressureDifference > PRESSURE_THRESHOLD) {
+                // 如果筆壓變化超過閾值，結束前一段線段並開始新的線段
+                touchUp();
+                touchStart(x, y);
+            } else {
+                // 如果筆壓變化未超過閾值，繼續在當前線段上繪製
+                mPath.quadTo(mX, mY, (x + mX) / 2, (y + mY) / 2);
+                mX = x;
+                mY = y;
+                PRESSURE_THRESHOLD = pressure;
+                mPaint.setStrokeWidth(pressure * 10.0f);
+            }
         }
     }
-    /**當使用者放開時，把位置設為終點*/
-    private void touch_up() {
-        mPath.lineTo(mX, mY);
-//        circlePath.reset();
-        mCanvas.drawPath(mPath,  mPaint);
-        mPath.reset();
-    }
-    /**清除所有畫筆內容*/
-    public void clear(){
-        setDrawingCacheEnabled(false);
-        onSizeChanged(getWidth(),getHeight(),getWidth(),getHeight());
-        invalidate();
-        setDrawingCacheEnabled(true);
 
+    private void touchUp() {
+        if (mDrawing) {
+            mPath.lineTo(mX, mY);
+            mCanvas.drawPath(mPath, mPaint);
+            mPath.reset();
+            mPaint.setStrokeWidth(10.0f); // 重置畫筆的粗細為初始值
+            mDrawing = false;
+        }
     }
-    /**設置接口從外部設置畫筆顏色*/
-    public void setColor(int color){
+
+    public void clear() {
+        mCanvas.drawColor(Color.WHITE);
+        invalidate();
+    }
+
+    public void setColor(int color) {
         mPaint.setColor(color);
     }
 
-    public void setStrokeWidth(){
-        if(strokeWidth != 40)
-            strokeWidth += 10;
-        else
-            strokeWidth = 10;
-        mPaint.setStrokeWidth(strokeWidth);
+    public void setStrokeWidth(int width) {
+        mPaint.setStrokeWidth(width);
     }
 
-    public void setPathEffect(){
+    public void setPathEffect() {
         DashPathEffect dashPathEffect = new DashPathEffect(new float[]{10, 10}, 0);
         mPaint.setPathEffect(dashPathEffect);
-    }
-    /**設置接口從外部設置背景圖片*/
-    public void setBackground(Bitmap bitmap){
-        background = bitmap;
-        invalidate();
     }
 }

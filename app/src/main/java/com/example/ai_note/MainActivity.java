@@ -33,23 +33,23 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, MarkActivity.class);
             startActivity(intent);
         });
-        strokeWidth.setOnClickListener(v -> {
-            myCanvasView.setStrokeWidth();
-        });
-        clear_button.setOnClickListener(v -> {
-            myCanvasView.clear();
-        });
-        yellow_button.setOnClickListener(v -> {
-            myCanvasView.setColor(0xFFFFFF99);
-        });
-
-        red_button.setOnClickListener(v -> {
-            myCanvasView.setColor(0xFFFF4081);
-        });
-
-        blue_button.setOnClickListener(v -> {
-            myCanvasView.setColor(0xFF7DF9FF);
-        });
+//        strokeWidth.setOnClickListener(v -> {
+//            myCanvasView.setStrokeWidth();
+//        });
+//        clear_button.setOnClickListener(v -> {
+//            myCanvasView.clear();
+//        });
+//        yellow_button.setOnClickListener(v -> {
+//            myCanvasView.setColor(0xFFFFFF99);
+//        });
+//
+//        red_button.setOnClickListener(v -> {
+//            myCanvasView.setColor(0xFFFF4081);
+//        });
+//
+//        blue_button.setOnClickListener(v -> {
+//            myCanvasView.setColor(0xFF7DF9FF);
+//        });
 
     }
 }
