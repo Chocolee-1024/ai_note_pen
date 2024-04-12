@@ -36,9 +36,9 @@ public class MainActivity extends AppCompatActivity {
 //        strokeWidth.setOnClickListener(v -> {
 //            myCanvasView.setStrokeWidth();
 //        });
-//        clear_button.setOnClickListener(v -> {
-//            myCanvasView.clear();
-//        });
+        clear_button.setOnClickListener(v -> {
+            myCanvasView.clear();
+        });
 //        yellow_button.setOnClickListener(v -> {
 //            myCanvasView.setColor(0xFFFFFF99);
 //        });

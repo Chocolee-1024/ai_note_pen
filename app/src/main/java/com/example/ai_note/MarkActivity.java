@@ -32,9 +32,7 @@ public class MarkActivity extends AppCompatActivity {
         setContentView(R.layout.activity_mark);
 
         TextView textView = findViewById(R.id.textView);
-        String targetText = "小鳥鳥";
         String articleText = "在清晨的晨光中，我我走進了森林。森林裡的樹樹苍翠，小鳥鳥在樹上歡快地歌唱。我我感受到了大自然的美麗，心情愉悅。突然間，我我看到了一隻小小的松鼠在樹上跳躍。我我停下腳步，靜靜地觀察著它。松鼠似乎察覺到了我的存在，轉過頭來，用它的小小眼睛瞪著我我小鳥鳥。我們相視了一會兒，然後松鼠咯咯地笑了。我我也跟著笑了起來。這是一段美好的時刻小鳥鳥，我我會永遠記得。";
-        SpannableString spannableString = new SpannableString(articleText);
         textView.setTextIsSelectable(true);
         textView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
             @Override
@@ -69,12 +67,7 @@ public class MarkActivity extends AppCompatActivity {
             public void onDestroyActionMode(ActionMode mode) {
             }
         });
-        int startIndex = -1;
-        while ((startIndex = articleText.indexOf(targetText, startIndex + 1)) != -1) {
-            int endIndex = startIndex + targetText.length();
-            spannableString.setSpan(new BackgroundColorSpan(0xFF87CEEB), startIndex, endIndex, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
 
-        textView.setText(spannableString);
+        textView.setText(articleText);
     }
 }
